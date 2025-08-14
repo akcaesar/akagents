@@ -23,5 +23,20 @@ class OllamaSummarizer(SummarizationService):
     def summarize(self, text: str) -> str:
         prompt = f"Summarize the following text: {text}"
         command = ["ollama", "run", self.model_name, prompt]
-        result = subprocess.run(command, capture_output=True, text=True)
-        return result.stdout.strip() if result.returncode == 0 else "Error in summarization" 
+        try:
+            # Set encoding explicitly and handle errors
+            result = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace'
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            else:
+                print(f"Error output: {result.stderr}")
+                return "Error in summarization"
+        except Exception as e:
+            print(f"Exception during summarization: {str(e)}")
+            return "Error in summarization" 
