@@ -1,0 +1,11 @@
+# Global config
+global:
+  scrape_interval: 15s # How frequently to scrape targets
+  evaluation_interval: 15s # How frequently to evaluate rules
+
+# Scrape configs
+scrape_configs:
+  - job_name: 'summarization_api'
+    static_configs:
+      - targets: ['host.docker.internal:8000']  # Points to your FastAPI app
+    metrics_path: '/metrics'  # Path where metrics are exposed
