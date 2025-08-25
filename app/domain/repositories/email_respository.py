@@ -7,6 +7,7 @@ Contains: Email repository interface
 from abc import ABC, abstractmethod
 from typing import List
 from app.domain.models.email import Email
+import sqlite3
 
 class EmailRepository(ABC):
     """ 
@@ -25,3 +26,7 @@ class EmailRepository(ABC):
     def get_by_id(self, email_id: int) -> Email:
         pass
     
+    @abstractmethod
+    def store(self, emails: List[Email]):
+        pass
+
