@@ -10,7 +10,7 @@ from typing import Dict
 
 _llm_cache: Dict[str, ChatOllama] = {}
 
-def get_llm(model_name: str, temperature: float = 0.1, max_tokens: int = 1000) -> ChatOllama:
+def get_llm(model_name: str, temperature: float = 0.1, max_tokens: int = 1000, **kwargs) -> ChatOllama:
     """returns a cached LLM instance if available, otherwise creates a new one.
 
     Args:

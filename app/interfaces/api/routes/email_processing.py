@@ -46,7 +46,7 @@ def clean_emails():
         for email in emails:
             cleaned_body = cleaner.clean(email.body)
             email.body = cleaned_body
-            email_repository.session.commit()
+        email_repository.bulk_update(emails)
         return {"message": f"{len(emails)} Emails cleaned successfully."}
     except Exception as e:
         return {"error": str(e)}      
@@ -61,8 +61,10 @@ def summarize_emails():
         summaries = {}
         for email in emails:
             summary = use_case.execute(email.body)
-            email.body = summary
-            email_repository.session.commit()
+            email.summarised_text = summary
+            email.mark_as_summarised()
+            summaries[email.id] = summary
+        email_repository.bulk_update(emails)
         return {"summaries": summaries}
     except Exception as e:
         return {"error": str(e)}    
