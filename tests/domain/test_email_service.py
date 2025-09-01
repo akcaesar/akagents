@@ -35,31 +35,32 @@ class FakeEmailFetchService(EmailFetchService):
 #    # print(email_repository.get_all_emails())
 #     assert email_repository.get_by_id(3).sender == "bhendi"
     
-    # assert email_repository.get_count() == len(user.list_of_emails)   
+#     assert email_repository.get_count() == len(user.list_of_emails)   
     
-# def test_email_imap_fetcher():
-#     user = UserCredentials(email="work.akshay77@gmail.com", password='ezusbfydvjzgbjcj')
-#     email_fetcher = EmailFetcherIMAP()
-#     list_of_emails = email_fetcher.fetch(user, limit=10)
-#     assert len(list_of_emails) == 10
+def test_email_imap_fetcher():
+    user = UserCredentials(email="work.akshay77@gmail.com", password='ezusbfydvjzgbjcj')
+    email_fetcher = EmailFetcherIMAP()
+    list_of_emails = email_fetcher.fetch(user, limit=10)
+    assert len(list_of_emails) == 10
     
-#     repo = SQLiteEmailRepository()
-#     repo.store(list_of_emails)
-#     assert repo.get_count() >= 10
-    
-def test_email_body_cleaner():
-    
-    """ clean all the email body content"""
     repo = SQLiteEmailRepository()
-    emails = repo.get_all_emails()
-    email_count = repo.get_count()
-    cleaner = EmailContentCleanBS4()
-    for email in emails:
-        cleaned_body = cleaner.clean(email.body)
-        email.body = cleaned_body
-        repo.session.commit()
+    repo.store(list_of_emails)
+    print(repo.get_all_emails())
+    assert repo.get_count() >= 10
     
-    print(f'Cleaned {email_count} email bodies and updated in the database.')    
+# def test_email_body_cleaner():
+    
+#     """ clean all the email body content"""
+#     repo = SQLiteEmailRepository()
+#     emails = repo.get_all_emails()
+#     email_count = repo.get_count()
+#     cleaner = EmailContentCleanBS4()
+#     for email in emails:
+#         cleaned_body = cleaner.clean(email.body)
+#         email.body = cleaned_body
+#         repo.session.commit()
+    
+#     print(f'Cleaned {email_count} email bodies and updated in the database.')    
     
     
           

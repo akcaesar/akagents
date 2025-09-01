@@ -4,29 +4,13 @@ Contains: SQLiteEmailRepository using SQLAlchemy
 
 """
 
-from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.domain.repositories.email_respository import EmailRepository
 from app.domain.models.email import Email
+from app.infrastructure.database.schemas import Base, EmailTable
+from app.infrastructure.database.mappers import EmailMapper
 from typing import List
-from datetime import datetime
-from email.utils import parsedate_to_datetime
-
-Base = declarative_base()
-
-class EmailModel(Base):
-    __tablename__ = 'emails'
-    
-    id = Column(Integer, primary_key=True)
-    sender = Column(String)
-    subject = Column(String)
-    body = Column(String)
-    sent_at = Column(DateTime)
-    category = Column(String)
-    summarised_text = Column(String)
-    summarised = Column(Boolean, default=False)
-    categorized = Column(Boolean, default=False)
 
 class SQLiteEmailRepository(EmailRepository):
     def __init__(self, db_path: str = "sqlite:///emails.db"):
@@ -37,139 +21,89 @@ class SQLiteEmailRepository(EmailRepository):
         self._migrate_existing_data()
     
     def get_count(self) -> int:
-        return self.session.query(EmailModel).count()
+        return self.session.query(EmailTable).count()
     
     def get_all_emails(self, limit: int = None) -> List[Email]:
-        query = self.session.query(EmailModel)
+        query = self.session.query(EmailTable)
         if limit is not None:
             query = query.limit(limit)
-        email_models = query.all()
+        email_tables = query.all()
         return [
-            Email(
-                id=email_model.id,
-                sender=email_model.sender,
-                subject=email_model.subject,
-                body=email_model.body,
-                sent_at=email_model.sent_at,
-                category=email_model.category,
-                summarised_text=email_model.summarised_text,
-                summarised=email_model.summarised,
-                categorized=email_model.categorized
-            )
-            for email_model in email_models
+            EmailMapper.to_domain(email_table)
+            for email_table in email_tables
         ]
     
     def get_by_id(self, email_id: int) -> Email:
-        email_model = self.session.query(EmailModel).filter_by(id=email_id).first()
-        if not email_model:
+        email_table = self.session.query(EmailTable).filter_by(id=email_id).first()
+        if not email_table:
             raise ValueError(f"Email {email_id} not found")
-        return Email(
-            id=email_model.id,
-            sender=email_model.sender,
-            subject=email_model.subject,
-            body=email_model.body,
-            sent_at=email_model.sent_at,
-            category=email_model.category,
-            summarised_text=email_model.summarised_text,
-            summarised=email_model.summarised,
-            categorized=email_model.categorized
-        )
+        return EmailMapper.to_domain(email_table)
     
     
     def update(self, email: Email):
         """Update an existing email record in the database."""
-        email_model = self.session.query(EmailModel).filter_by(id=email.id).first()
-        if not email_model:
+        email_table = self.session.query(EmailTable).filter_by(id=email.id).first()
+        if not email_table:
             raise ValueError(f"Email {email.id} not found")
 
-        # Update fields
-        email_model.sender = email.sender
-        email_model.subject = email.subject
-        email_model.body = email.body
+        # Convert domain model to schema and update fields
+        updated_table = EmailMapper.to_schema(email)
         
-        # Parse sent_at if it's a string
-        sent_at = email.sent_at
-        if isinstance(sent_at, str):
-            try:
-                sent_at = parsedate_to_datetime(sent_at)
-            except (ValueError, TypeError):
-                sent_at = datetime.now()
-        email_model.sent_at = sent_at
-        
-        email_model.category = email.category
-        email_model.summarised_text = email.summarised_text
-        email_model.summarised = email.summarised
-        email_model.categorized = email.categorized
+        # Update all fields from the converted schema
+        email_table.sender = updated_table.sender
+        email_table.subject = updated_table.subject
+        email_table.body = updated_table.body
+        email_table.sent_at = updated_table.sent_at
+        email_table.category = updated_table.category
+        email_table.summarised_text = updated_table.summarised_text
+        email_table.summarised = updated_table.summarised
+        email_table.categorized = updated_table.categorized
 
         self.session.commit()
     
     def bulk_update(self, emails: List[Email]):
         """Update multiple existing email records in the database."""
-        # Get all email models in one query
+        # Get all email tables in one query
         email_ids = [email.id for email in emails]
-        email_models = self.session.query(EmailModel).filter(EmailModel.id.in_(email_ids)).all()
+        email_tables = self.session.query(EmailTable).filter(EmailTable.id.in_(email_ids)).all()
         
         # Create a mapping for quick lookup
-        email_model_map = {model.id: model for model in email_models}
+        email_table_map = {table.id: table for table in email_tables}
         
         for email in emails:
-            email_model = email_model_map.get(email.id)
-            if email_model:
-                # Update fields
-                email_model.sender = email.sender
-                email_model.subject = email.subject
-                email_model.body = email.body
+            email_table = email_table_map.get(email.id)
+            if email_table:
+                # Convert domain to schema and update fields
+                updated_schema = EmailMapper.to_schema(email)
                 
-                # Parse sent_at if it's a string
-                sent_at = email.sent_at
-                if isinstance(sent_at, str):
-                    try:
-                        sent_at = parsedate_to_datetime(sent_at)
-                    except (ValueError, TypeError):
-                        sent_at = datetime.now()
-                email_model.sent_at = sent_at
-                
-                email_model.category = email.category
-                email_model.summarised_text = email.summarised_text
-                email_model.summarised = email.summarised
-                email_model.categorized = email.categorized
+                email_table.sender = updated_schema.sender
+                email_table.subject = updated_schema.subject
+                email_table.body = updated_schema.body
+                email_table.sent_at = updated_schema.sent_at
+                email_table.category = updated_schema.category
+                email_table.summarised_text = updated_schema.summarised_text
+                email_table.summarised = updated_schema.summarised
+                email_table.categorized = updated_schema.categorized
         
         # Single commit for all updates
         self.session.commit()
     
     def store(self, emails: List[Email]):
         for email in emails:
-            # Parse sent_at if it's a string
-            sent_at = email.sent_at
-            if isinstance(sent_at, str):
-                try:
-                    sent_at = parsedate_to_datetime(sent_at)
-                except (ValueError, TypeError):
-                    # Fallback to current datetime if parsing fails
-                    sent_at = datetime.now()
-            
-            email_model = EmailModel(
-                sender=email.sender,
-                subject=email.subject,
-                body=email.body,
-                sent_at=sent_at,
-                category=email.category,
-                summarised_text=email.summarised_text,
-                summarised=email.summarised,
-                categorized=email.categorized
-            )
-            self.session.add(email_model)
+            # Convert domain model to schema
+            email_table = EmailMapper.to_schema(email)
+            self.session.add(email_table)
         self.session.commit()
         
     def delete_all_emails(self):
-        self.session.query(EmailModel).delete()
+        self.session.query(EmailTable).delete()
         self.session.commit()
     
     def _migrate_existing_data(self):
         """Migrate existing data to handle schema changes"""
         try:
             # Check if migration is needed by trying to access new columns
-            emails = self.session.query(EmailModel).first()
+            emails = self.session.query(EmailTable).first()
             if emails:
                 # Test if new columns exist by accessing them
                 _ = emails.summarised
