@@ -15,10 +15,18 @@ class RunCategorization:
         
     
     def execute(self, emails: List[Email]):
-        for email in emails:
-            if not email.categorized:
-                category = self.categorizer.categorize(email.summarised_text or email.body)
-                email.category = category
-                email.mark_as_categorized() 
+        # Re-categorize all emails (overwrite default "inbox" categories)
+        if not emails:
+            return emails
+            
+        # Batch categorize all emails
+        email_bodies = [email.summarised_text or email.body for email in emails]
+        categories = self.categorizer.categorize(email_bodies)
+        
+        # Assign categories back to emails
+        for email, category in zip(emails, categories):
+            email.category = category
+            email.mark_as_categorized()
+            
         return emails
         

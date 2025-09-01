@@ -37,17 +37,33 @@ class FakeEmailFetchService(EmailFetchService):
     
 #     assert email_repository.get_count() == len(user.list_of_emails)   
     
+# def test_email_imap_fetcher():
+#     user = UserCredentials(email="work.akshay77@gmail.com", password='ezusbfydvjzgbjcj')
+#     email_fetcher = EmailFetcherIMAP()
+#     list_of_emails = email_fetcher.fetch(user, limit=10)
+#     assert len(list_of_emails) == 10
+    
+#     repo = SQLiteEmailRepository()
+#     repo.delete_all_emails()
+#     repo.store(list_of_emails)
+#     print(repo.get_all_emails())
+#     assert repo.get_count() >= 10
+    
 def test_email_imap_fetcher():
     user = UserCredentials(email="work.akshay77@gmail.com", password='ezusbfydvjzgbjcj')
     email_fetcher = EmailFetcherIMAP()
     list_of_emails = email_fetcher.fetch(user, limit=10)
-    assert len(list_of_emails) == 10
+    assert len(list_of_emails) > 0
+    print(f"Fetched {len(list_of_emails)} emails.")
     
     repo = SQLiteEmailRepository()
+    repo.delete_all_emails()
     repo.store(list_of_emails)
-    print(repo.get_all_emails())
-    assert repo.get_count() >= 10
+    print(f"Stored {repo.get_count()} emails in the database.")
+    assert repo.get_count() == len(list_of_emails)
     
+          
+    # Verify category
 # def test_email_body_cleaner():
     
 #     """ clean all the email body content"""

@@ -43,10 +43,14 @@ class OllamaCategorizer(CategorizationService):
         self.model_name = model_name
         self.llm = get_llm(model_name, format="json, schema=Categories")
         
-    def categorize(self, email_body: str) -> List[str]:
-        messages = [
-            ("system", "You categorize job application related emails into one of the following categories: 'Rejection', 'Interview', 'Offer', 'Application Confirmation', 'Job Advertisement', 'Other'. Respond in JSON format with a single field 'category'."),
-            ("human", f"Categorize the following email body: {email_body}"),
-        ]
-        ai_msg = self.llm.with_structured_output(schema=Categories).invoke(messages)
-        return ai_msg.category
+    def categorize(self, email_bodies: List[str]) -> List[str]:
+        """Categorize multiple email bodies and return corresponding categories"""
+        results = []
+        for email_body in email_bodies:
+            messages = [
+                ("system", "You categorize job application related emails into one of the following categories: 'Rejection', 'Interview', 'Offer', 'Application Confirmation', 'Job Advertisement', 'Other'. Respond in JSON format with a single field 'category'."),
+                ("human", f"Categorize the following email body: {email_body}"),
+            ]
+            ai_msg = self.llm.with_structured_output(schema=Categories).invoke(messages)
+            results.append(ai_msg.category)
+        return results
